@@ -1,12 +1,20 @@
 // LEDs
-#define MICROPY_HW_LED_STATUS   (&pin_PB07)
 
 #define MICROPY_HW_BOARD_NAME "SensiLab DrawBot"
 #define MICROPY_HW_MCU_NAME "samd21j18"
 
+#define MICROPY_HW_NEOPIXEL (&pin_PB04)
+
+#define SPI_FLASH_MOSI_PIN          &pin_PA08
+#define SPI_FLASH_MISO_PIN          &pin_PA10
+#define SPI_FLASH_SCK_PIN           &pin_PA09
+#define SPI_FLASH_CS_PIN            &pin_PA12
+
 #define MICROPY_PORT_A        (0)
 #define MICROPY_PORT_B        (0)
 #define MICROPY_PORT_C        (0)
+
+#define BOARD_HAS_CRYSTAL 1
 
 #define DEFAULT_I2C_BUS_SCL (&pin_PA23)
 #define DEFAULT_I2C_BUS_SDA (&pin_PA22)
