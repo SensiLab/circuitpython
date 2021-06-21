@@ -29,15 +29,15 @@
 
 #include "common-hal/microcontroller/Pin.h"
 
-#include "esp-idf/components/soc/include/hal/i2c_types.h"
+#include "components/soc/include/hal/i2c_types.h"
 #include "FreeRTOS.h"
 #include "freertos/semphr.h"
 #include "py/obj.h"
 
 typedef struct {
     mp_obj_base_t base;
-    const mcu_pin_obj_t* scl_pin;
-    const mcu_pin_obj_t* sda_pin;
+    const mcu_pin_obj_t *scl_pin;
+    const mcu_pin_obj_t *sda_pin;
     i2c_port_t i2c_num;
     StaticSemaphore_t semaphore;
     bool has_lock;

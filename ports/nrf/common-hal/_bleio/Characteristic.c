@@ -38,7 +38,7 @@
 STATIC uint16_t characteristic_get_cccd(uint16_t cccd_handle, uint16_t conn_handle) {
     uint16_t cccd;
     ble_gatts_value_t value = {
-        .p_value = (uint8_t*) &cccd,
+        .p_value = (uint8_t *)&cccd,
         .len = 2,
     };
 
@@ -90,12 +90,13 @@ void common_hal_bleio_characteristic_construct(bleio_characteristic_obj_t *self,
     self->props = props;
     self->read_perm = read_perm;
     self->write_perm = write_perm;
-    self->descriptor_list = NULL;
+    self->initial_value = mp_obj_new_bytes(initial_value_bufinfo->buf, initial_value_bufinfo->len);
+    self->descriptor_list = mp_obj_new_list(0, NULL);
 
     const mp_int_t max_length_max = fixed_length ? BLE_GATTS_FIX_ATTR_LEN_MAX : BLE_GATTS_VAR_ATTR_LEN_MAX;
     if (max_length < 0 || max_length > max_length_max) {
         mp_raise_ValueError_varg(translate("max_length must be 0-%d when fixed_length is %s"),
-                                 max_length_max, fixed_length ? "True" : "False");
+            max_length_max, fixed_length ? "True" : "False");
     }
     self->max_length = max_length;
     self->fixed_length = fixed_length;
@@ -105,26 +106,21 @@ void common_hal_bleio_characteristic_construct(bleio_characteristic_obj_t *self,
     } else {
         common_hal_bleio_service_add_characteristic(self->service, self, initial_value_bufinfo);
     }
-
-    if (initial_value_bufinfo != NULL) {
-        common_hal_bleio_characteristic_set_value(self, initial_value_bufinfo);
-    }
 }
 
-bleio_descriptor_obj_t *common_hal_bleio_characteristic_get_descriptor_list(bleio_characteristic_obj_t *self) {
-    return self->descriptor_list;
+mp_obj_tuple_t *common_hal_bleio_characteristic_get_descriptors(bleio_characteristic_obj_t *self) {
+    return mp_obj_new_tuple(self->descriptor_list->len, self->descriptor_list->items);
 }
 
 bleio_service_obj_t *common_hal_bleio_characteristic_get_service(bleio_characteristic_obj_t *self) {
     return self->service;
 }
 
-size_t common_hal_bleio_characteristic_get_value(bleio_characteristic_obj_t *self, uint8_t* buf, size_t len) {
+size_t common_hal_bleio_characteristic_get_value(bleio_characteristic_obj_t *self, uint8_t *buf, size_t len) {
     // Do GATT operations only if this characteristic has been added to a registered service.
     if (self->handle != BLE_GATT_HANDLE_INVALID) {
         uint16_t conn_handle = bleio_connection_get_conn_handle(self->service->connection);
         if (common_hal_bleio_service_get_is_remote(self->service)) {
-            // self->value is set by evt handler.
             return common_hal_bleio_gattc_read(self->handle, conn_handle, buf, len);
         } else {
             // conn_handle is ignored for non-system attributes.
@@ -135,14 +131,11 @@ size_t common_hal_bleio_characteristic_get_value(bleio_characteristic_obj_t *sel
     return 0;
 }
 
-void common_hal_bleio_characteristic_set_value(bleio_characteristic_obj_t *self, mp_buffer_info_t *bufinfo) {
-    if (self->fixed_length && bufinfo->len != self->max_length) {
-        mp_raise_ValueError(translate("Value length != required fixed length"));
-    }
-    if (bufinfo->len > self->max_length) {
-        mp_raise_ValueError(translate("Value length > max_length"));
-    }
+size_t common_hal_bleio_characteristic_get_max_length(bleio_characteristic_obj_t *self) {
+    return self->max_length;
+}
 
+void common_hal_bleio_characteristic_set_value(bleio_characteristic_obj_t *self, mp_buffer_info_t *bufinfo) {
     // Do GATT operations only if this characteristic has been added to a registered service.
     if (self->handle != BLE_GATT_HANDLE_INVALID) {
 
@@ -150,8 +143,16 @@ void common_hal_bleio_characteristic_set_value(bleio_characteristic_obj_t *self,
             uint16_t conn_handle = bleio_connection_get_conn_handle(self->service->connection);
             // Last argument is true if write-no-reponse desired.
             common_hal_bleio_gattc_write(self->handle, conn_handle, bufinfo,
-                                         (self->props & CHAR_PROP_WRITE_NO_RESPONSE));
+                (self->props & CHAR_PROP_WRITE_NO_RESPONSE));
         } else {
+            // Validate data length for local characteristics only.
+            if (self->fixed_length && bufinfo->len != self->max_length) {
+                mp_raise_ValueError(translate("Value length != required fixed length"));
+            }
+            if (bufinfo->len > self->max_length) {
+                mp_raise_ValueError(translate("Value length > max_length"));
+            }
+
             // Always write the value locally even if no connections are active.
             // conn_handle is ignored for non-system attributes, so we use BLE_CONN_HANDLE_INVALID.
             common_hal_bleio_gatts_write(self->handle, BLE_CONN_HANDLE_INVALID, bufinfo);
@@ -205,7 +206,7 @@ void common_hal_bleio_characteristic_add_descriptor(bleio_characteristic_obj_t *
     bleio_attribute_gatts_set_security_mode(&desc_attr_md.write_perm, descriptor->write_perm);
 
     mp_buffer_info_t desc_value_bufinfo;
-    mp_get_buffer_raise(descriptor->value, &desc_value_bufinfo, MP_BUFFER_READ);
+    mp_get_buffer_raise(descriptor->initial_value, &desc_value_bufinfo, MP_BUFFER_READ);
 
     ble_gatts_attr_t desc_attr = {
         .p_uuid = &desc_uuid,
@@ -218,8 +219,8 @@ void common_hal_bleio_characteristic_add_descriptor(bleio_characteristic_obj_t *
 
     check_nrf_error(sd_ble_gatts_descriptor_add(self->handle, &desc_attr, &descriptor->handle));
 
-    descriptor->next = self->descriptor_list;
-    self->descriptor_list = descriptor;
+    mp_obj_list_append(MP_OBJ_FROM_PTR(self->descriptor_list),
+        MP_OBJ_FROM_PTR(descriptor));
 }
 
 void common_hal_bleio_characteristic_set_cccd(bleio_characteristic_obj_t *self, bool notify, bool indicate) {
@@ -241,7 +242,7 @@ void common_hal_bleio_characteristic_set_cccd(bleio_characteristic_obj_t *self, 
     ble_gattc_write_params_t write_params = {
         .write_op = BLE_GATT_OP_WRITE_REQ,
         .handle = self->cccd_handle,
-        .p_value = (uint8_t *) &cccd_value,
+        .p_value = (uint8_t *)&cccd_value,
         .len = 2,
     };
 

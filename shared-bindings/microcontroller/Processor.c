@@ -41,7 +41,15 @@
 //|
 //|        import microcontroller
 //|        print(microcontroller.cpu.frequency)
-//|        print(microcontroller.cpu.temperature)"""
+//|        print(microcontroller.cpu.temperature)
+//|
+//|        Note that on chips with more than one cpu (such as the RP2040)
+//|        microcontroller.cpu will return the value for CPU 0.
+//|        To get values from other CPUs use microcontroller.cpus indexed by
+//|        the number of the desired cpu. i.e.
+//|
+//|        print(microcontroller.cpus[0].temperature)
+//|        print(microcontroller.cpus[1].frequency)"""
 //|
 
 //|     def __init__(self) -> None:
@@ -62,8 +70,25 @@ MP_DEFINE_CONST_FUN_OBJ_1(mcu_processor_get_frequency_obj, mcu_processor_get_fre
 const mp_obj_property_t mcu_processor_frequency_obj = {
     .base.type = &mp_type_property,
     .proxy = {(mp_obj_t)&mcu_processor_get_frequency_obj,  // getter
-              (mp_obj_t)&mp_const_none_obj,            // no setter
-              (mp_obj_t)&mp_const_none_obj,            // no deleter
+              MP_ROM_NONE,            // no setter
+              MP_ROM_NONE,            // no deleter
+    },
+};
+
+//|     reset_reason: microcontroller.ResetReason
+//|     """The reason the microcontroller started up from reset state."""
+//|
+STATIC mp_obj_t mcu_processor_get_reset_reason(mp_obj_t self) {
+    return cp_enum_find(&mcu_reset_reason_type, common_hal_mcu_processor_get_reset_reason());
+}
+
+MP_DEFINE_CONST_FUN_OBJ_1(mcu_processor_get_reset_reason_obj, mcu_processor_get_reset_reason);
+
+const mp_obj_property_t mcu_processor_reset_reason_obj = {
+    .base.type = &mp_type_property,
+    .proxy = {(mp_obj_t)&mcu_processor_get_reset_reason_obj,  // getter
+              MP_ROM_NONE,            // no setter
+              MP_ROM_NONE,            // no deleter
     },
 };
 
@@ -82,8 +107,8 @@ MP_DEFINE_CONST_FUN_OBJ_1(mcu_processor_get_temperature_obj, mcu_processor_get_t
 const mp_obj_property_t mcu_processor_temperature_obj = {
     .base.type = &mp_type_property,
     .proxy = {(mp_obj_t)&mcu_processor_get_temperature_obj,  // getter
-              (mp_obj_t)&mp_const_none_obj,            // no setter
-              (mp_obj_t)&mp_const_none_obj,            // no deleter
+              MP_ROM_NONE,            // no setter
+              MP_ROM_NONE,            // no deleter
     },
 };
 
@@ -101,8 +126,8 @@ MP_DEFINE_CONST_FUN_OBJ_1(mcu_processor_get_uid_obj, mcu_processor_get_uid);
 const mp_obj_property_t mcu_processor_uid_obj = {
     .base.type = &mp_type_property,
     .proxy = {(mp_obj_t)&mcu_processor_get_uid_obj,  // getter
-        (mp_obj_t)&mp_const_none_obj,            // no setter
-        (mp_obj_t)&mp_const_none_obj,            // no deleter
+              MP_ROM_NONE,      // no setter
+              MP_ROM_NONE,      // no deleter
     },
 };
 
@@ -121,13 +146,14 @@ MP_DEFINE_CONST_FUN_OBJ_1(mcu_processor_get_voltage_obj, mcu_processor_get_volta
 const mp_obj_property_t mcu_processor_voltage_obj = {
     .base.type = &mp_type_property,
     .proxy = {(mp_obj_t)&mcu_processor_get_voltage_obj,  // getter
-              (mp_obj_t)&mp_const_none_obj,            // no setter
-              (mp_obj_t)&mp_const_none_obj,            // no deleter
+              MP_ROM_NONE,            // no setter
+              MP_ROM_NONE,            // no deleter
     },
 };
 
 STATIC const mp_rom_map_elem_t mcu_processor_locals_dict_table[] = {
     { MP_ROM_QSTR(MP_QSTR_frequency), MP_ROM_PTR(&mcu_processor_frequency_obj) },
+    { MP_ROM_QSTR(MP_QSTR_reset_reason), MP_ROM_PTR(&mcu_processor_reset_reason_obj) },
     { MP_ROM_QSTR(MP_QSTR_temperature), MP_ROM_PTR(&mcu_processor_temperature_obj) },
     { MP_ROM_QSTR(MP_QSTR_uid), MP_ROM_PTR(&mcu_processor_uid_obj) },
     { MP_ROM_QSTR(MP_QSTR_voltage), MP_ROM_PTR(&mcu_processor_voltage_obj) },

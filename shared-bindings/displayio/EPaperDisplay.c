@@ -49,15 +49,28 @@
 //|     Most people should not use this class directly. Use a specific display driver instead that will
 //|     contain the startup and shutdown sequences at minimum."""
 //|
-//|     def __init__(self, display_bus: _DisplayBus, start_sequence: ReadableBuffer, stop_sequence: ReadableBuffer, *, width: int, height: int, ram_width: int, ram_height: int, colstart: int = 0, rowstart: int = 0, rotation: int = 0, set_column_window_command: Optional[int] = None, set_row_window_command: Optional[int] = None, single_byte_bounds: bool = False, write_black_ram_command: int, black_bits_inverted: bool = False, write_color_ram_command: Optional[int] = None, color_bits_inverted: bool = False, highlight_color: int = 0x000000, refresh_display_command: int, refresh_time: float = 40, busy_pin: Optional[microcontroller.Pin] = None, busy_state: bool = True, seconds_per_frame: float = 180, always_toggle_chip_select: bool = False) -> None:
+//|     def __init__(self, display_bus: _DisplayBus,
+//|                  start_sequence: ReadableBuffer, stop_sequence: ReadableBuffer, *,
+//|                  width: int, height: int, ram_width: int, ram_height: int,
+//|                  colstart: int = 0, rowstart: int = 0, rotation: int = 0,
+//|                  set_column_window_command: Optional[int] = None,
+//|                  set_row_window_command: Optional[int] = None, single_byte_bounds: bool = False,
+//|                  write_black_ram_command: int, black_bits_inverted: bool = False,
+//|                  write_color_ram_command: Optional[int] = None,
+//|                  color_bits_inverted: bool = False, highlight_color: int = 0x000000,
+//|                  refresh_display_command: int, refresh_time: float = 40,
+//|                  busy_pin: Optional[microcontroller.Pin] = None, busy_state: bool = True,
+//|                  seconds_per_frame: float = 180, always_toggle_chip_select: bool = False,
+//|                  grayscale: bool = False) -> None:
 //|         """Create a EPaperDisplay object on the given display bus (`displayio.FourWire` or `displayio.ParallelBus`).
 //|
 //|         The ``start_sequence`` and ``stop_sequence`` are bitpacked to minimize the ram impact. Every
-//|         command begins with a command byte followed by a byte to determine the parameter count and if
-//|         a delay is need after. When the top bit of the second byte is 1, the next byte will be the
-//|         delay time in milliseconds. The remaining 7 bits are the parameter count excluding any delay
-//|         byte. The third through final bytes are the remaining command parameters. The next byte will
-//|         begin a new command definition.
+//|         command begins with a command byte followed by a byte to determine the parameter count and
+//|         delay. When the top bit of the second byte is 1 (0x80), a delay will occur after the command
+//|         parameters are sent. The remaining 7 bits are the parameter count excluding any delay
+//|         byte. The bytes following are the parameters. When the delay bit is set, a single byte after
+//|         the parameters specifies the delay duration in milliseconds. The value 0xff will lead to an
+//|         extra long 500 ms delay instead of 255 ms. The next byte will begin a new command definition.
 //|
 //|         :param display_bus: The bus that the display is connected to
 //|         :type _DisplayBus: displayio.FourWire or displayio.ParallelBus
@@ -84,11 +97,18 @@
 //|         :param microcontroller.Pin busy_pin: Pin used to signify the display is busy
 //|         :param bool busy_state: State of the busy pin when the display is busy
 //|         :param float seconds_per_frame: Minimum number of seconds between screen refreshes
-//|         :param bool always_toggle_chip_select: When True, chip select is toggled every byte"""
+//|         :param bool always_toggle_chip_select: When True, chip select is toggled every byte
+//|         :param bool grayscale: When true, the color ram is the low bit of 2-bit grayscale"""
 //|         ...
 //|
 STATIC mp_obj_t displayio_epaperdisplay_make_new(const mp_obj_type_t *type, size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
-    enum { ARG_display_bus, ARG_start_sequence, ARG_stop_sequence, ARG_width, ARG_height, ARG_ram_width, ARG_ram_height, ARG_colstart, ARG_rowstart, ARG_rotation, ARG_set_column_window_command, ARG_set_row_window_command, ARG_set_current_column_command, ARG_set_current_row_command, ARG_write_black_ram_command, ARG_black_bits_inverted, ARG_write_color_ram_command, ARG_color_bits_inverted, ARG_highlight_color, ARG_refresh_display_command,  ARG_refresh_time, ARG_busy_pin, ARG_busy_state, ARG_seconds_per_frame, ARG_always_toggle_chip_select };
+    enum { ARG_display_bus, ARG_start_sequence, ARG_stop_sequence, ARG_width, ARG_height,
+           ARG_ram_width, ARG_ram_height, ARG_colstart, ARG_rowstart, ARG_rotation,
+           ARG_set_column_window_command, ARG_set_row_window_command, ARG_set_current_column_command,
+           ARG_set_current_row_command, ARG_write_black_ram_command, ARG_black_bits_inverted,
+           ARG_write_color_ram_command, ARG_color_bits_inverted, ARG_highlight_color,
+           ARG_refresh_display_command,  ARG_refresh_time, ARG_busy_pin, ARG_busy_state,
+           ARG_seconds_per_frame, ARG_always_toggle_chip_select, ARG_grayscale };
     static const mp_arg_t allowed_args[] = {
         { MP_QSTR_display_bus, MP_ARG_REQUIRED | MP_ARG_OBJ },
         { MP_QSTR_start_sequence, MP_ARG_REQUIRED | MP_ARG_OBJ },
@@ -115,6 +135,7 @@ STATIC mp_obj_t displayio_epaperdisplay_make_new(const mp_obj_type_t *type, size
         { MP_QSTR_busy_state, MP_ARG_BOOL | MP_ARG_KW_ONLY, {.u_bool = true} },
         { MP_QSTR_seconds_per_frame, MP_ARG_OBJ | MP_ARG_KW_ONLY, {.u_obj = MP_OBJ_NEW_SMALL_INT(180)} },
         { MP_QSTR_always_toggle_chip_select, MP_ARG_BOOL | MP_ARG_KW_ONLY, {.u_bool = false} },
+        { MP_QSTR_grayscale, MP_ARG_BOOL | MP_ARG_KW_ONLY, {.u_bool = false} },
     };
     mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
     mp_arg_parse_all(n_args, pos_args, kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
@@ -127,7 +148,7 @@ STATIC mp_obj_t displayio_epaperdisplay_make_new(const mp_obj_type_t *type, size
     mp_get_buffer_raise(args[ARG_stop_sequence].u_obj, &stop_bufinfo, MP_BUFFER_READ);
 
 
-    const mcu_pin_obj_t* busy_pin = validate_obj_is_free_pin_or_none(args[ARG_busy_pin].u_obj);
+    const mcu_pin_obj_t *busy_pin = validate_obj_is_free_pin_or_none(args[ARG_busy_pin].u_obj);
 
     mp_int_t rotation = args[ARG_rotation].u_int;
     if (rotation % 90 != 0) {
@@ -135,7 +156,8 @@ STATIC mp_obj_t displayio_epaperdisplay_make_new(const mp_obj_type_t *type, size
     }
 
     primary_display_t *disp = allocate_display_or_raise();
-    displayio_epaperdisplay_obj_t *self = &disp->epaper_display;;
+    displayio_epaperdisplay_obj_t *self = &disp->epaper_display;
+    ;
 
     mp_float_t refresh_time = mp_obj_get_float(args[ARG_refresh_time].u_obj);
     mp_float_t seconds_per_frame = mp_obj_get_float(args[ARG_seconds_per_frame].u_obj);
@@ -151,19 +173,22 @@ STATIC mp_obj_t displayio_epaperdisplay_make_new(const mp_obj_type_t *type, size
         self,
         display_bus,
         start_bufinfo.buf, start_bufinfo.len, stop_bufinfo.buf, stop_bufinfo.len,
-        args[ARG_width].u_int, args[ARG_height].u_int, args[ARG_ram_width].u_int, args[ARG_ram_height].u_int, args[ARG_colstart].u_int, args[ARG_rowstart].u_int, rotation,
+        args[ARG_width].u_int, args[ARG_height].u_int, args[ARG_ram_width].u_int, args[ARG_ram_height].u_int,
+        args[ARG_colstart].u_int, args[ARG_rowstart].u_int, rotation,
         args[ARG_set_column_window_command].u_int, args[ARG_set_row_window_command].u_int,
         args[ARG_set_current_column_command].u_int, args[ARG_set_current_row_command].u_int,
-        args[ARG_write_black_ram_command].u_int, args[ARG_black_bits_inverted].u_bool, write_color_ram_command, args[ARG_color_bits_inverted].u_bool, highlight_color, args[ARG_refresh_display_command].u_int, refresh_time,
-        busy_pin, args[ARG_busy_state].u_bool, seconds_per_frame, args[ARG_always_toggle_chip_select].u_bool
+        args[ARG_write_black_ram_command].u_int, args[ARG_black_bits_inverted].u_bool, write_color_ram_command,
+        args[ARG_color_bits_inverted].u_bool, highlight_color, args[ARG_refresh_display_command].u_int, refresh_time,
+        busy_pin, args[ARG_busy_state].u_bool, seconds_per_frame,
+        args[ARG_always_toggle_chip_select].u_bool, args[ARG_grayscale].u_bool
         );
 
     return self;
 }
 
 // Helper to ensure we have the native super class instead of a subclass.
-static displayio_epaperdisplay_obj_t* native_display(mp_obj_t display_obj) {
-    mp_obj_t native_display = mp_instance_cast_to_native_base(display_obj, &displayio_epaperdisplay_type);
+static displayio_epaperdisplay_obj_t *native_display(mp_obj_t display_obj) {
+    mp_obj_t native_display = mp_obj_cast_to_native_base(display_obj, &displayio_epaperdisplay_type);
     mp_obj_assert_native_inited(native_display);
     return MP_OBJ_TO_PTR(native_display);
 }
@@ -177,7 +202,7 @@ static displayio_epaperdisplay_obj_t* native_display(mp_obj_t display_obj) {
 //|
 STATIC mp_obj_t displayio_epaperdisplay_obj_show(mp_obj_t self_in, mp_obj_t group_in) {
     displayio_epaperdisplay_obj_t *self = native_display(self_in);
-    displayio_group_t* group = NULL;
+    displayio_group_t *group = NULL;
     if (group_in != mp_const_none) {
         group = MP_OBJ_TO_PTR(native_group(group_in));
     }
@@ -217,8 +242,25 @@ MP_DEFINE_CONST_FUN_OBJ_1(displayio_epaperdisplay_get_time_to_refresh_obj, displ
 const mp_obj_property_t displayio_epaperdisplay_time_to_refresh_obj = {
     .base.type = &mp_type_property,
     .proxy = {(mp_obj_t)&displayio_epaperdisplay_get_time_to_refresh_obj,
-              (mp_obj_t)&mp_const_none_obj,
-              (mp_obj_t)&mp_const_none_obj},
+              MP_ROM_NONE,
+              MP_ROM_NONE},
+};
+
+//|     busy: bool
+//|     """True when the display is refreshing. This uses the ``busy_pin`` when available or the
+//|        ``refresh_time`` otherwise."""
+//|
+STATIC mp_obj_t displayio_epaperdisplay_obj_get_busy(mp_obj_t self_in) {
+    displayio_epaperdisplay_obj_t *self = native_display(self_in);
+    return mp_obj_new_bool(common_hal_displayio_epaperdisplay_get_busy(self));
+}
+MP_DEFINE_CONST_FUN_OBJ_1(displayio_epaperdisplay_get_busy_obj, displayio_epaperdisplay_obj_get_busy);
+
+const mp_obj_property_t displayio_epaperdisplay_busy_obj = {
+    .base.type = &mp_type_property,
+    .proxy = {(mp_obj_t)&displayio_epaperdisplay_get_busy_obj,
+              MP_ROM_NONE,
+              MP_ROM_NONE},
 };
 
 //|     width: int
@@ -233,8 +275,8 @@ MP_DEFINE_CONST_FUN_OBJ_1(displayio_epaperdisplay_get_width_obj, displayio_epape
 const mp_obj_property_t displayio_epaperdisplay_width_obj = {
     .base.type = &mp_type_property,
     .proxy = {(mp_obj_t)&displayio_epaperdisplay_get_width_obj,
-              (mp_obj_t)&mp_const_none_obj,
-              (mp_obj_t)&mp_const_none_obj},
+              MP_ROM_NONE,
+              MP_ROM_NONE},
 };
 
 //|     height: int
@@ -249,8 +291,31 @@ MP_DEFINE_CONST_FUN_OBJ_1(displayio_epaperdisplay_get_height_obj, displayio_epap
 const mp_obj_property_t displayio_epaperdisplay_height_obj = {
     .base.type = &mp_type_property,
     .proxy = {(mp_obj_t)&displayio_epaperdisplay_get_height_obj,
-              (mp_obj_t)&mp_const_none_obj,
-              (mp_obj_t)&mp_const_none_obj},
+              MP_ROM_NONE,
+              MP_ROM_NONE},
+};
+
+//|     rotation: int
+//|     """The rotation of the display as an int in degrees."""
+//|
+STATIC mp_obj_t displayio_epaperdisplay_obj_get_rotation(mp_obj_t self_in) {
+    displayio_epaperdisplay_obj_t *self = native_display(self_in);
+    return MP_OBJ_NEW_SMALL_INT(common_hal_displayio_epaperdisplay_get_rotation(self));
+}
+MP_DEFINE_CONST_FUN_OBJ_1(displayio_epaperdisplay_get_rotation_obj, displayio_epaperdisplay_obj_get_rotation);
+STATIC mp_obj_t displayio_epaperdisplay_obj_set_rotation(mp_obj_t self_in, mp_obj_t value) {
+    displayio_epaperdisplay_obj_t *self = native_display(self_in);
+    common_hal_displayio_epaperdisplay_set_rotation(self, mp_obj_get_int(value));
+    return mp_const_none;
+}
+MP_DEFINE_CONST_FUN_OBJ_2(displayio_epaperdisplay_set_rotation_obj, displayio_epaperdisplay_obj_set_rotation);
+
+
+const mp_obj_property_t displayio_epaperdisplay_rotation_obj = {
+    .base.type = &mp_type_property,
+    .proxy = {(mp_obj_t)&displayio_epaperdisplay_get_rotation_obj,
+              (mp_obj_t)&displayio_epaperdisplay_set_rotation_obj,
+              MP_ROM_NONE},
 };
 
 //|     bus: _DisplayBus
@@ -265,8 +330,8 @@ MP_DEFINE_CONST_FUN_OBJ_1(displayio_epaperdisplay_get_bus_obj, displayio_epaperd
 const mp_obj_property_t displayio_epaperdisplay_bus_obj = {
     .base.type = &mp_type_property,
     .proxy = {(mp_obj_t)&displayio_epaperdisplay_get_bus_obj,
-              (mp_obj_t)&mp_const_none_obj,
-              (mp_obj_t)&mp_const_none_obj},
+              MP_ROM_NONE,
+              MP_ROM_NONE},
 };
 
 
@@ -276,7 +341,9 @@ STATIC const mp_rom_map_elem_t displayio_epaperdisplay_locals_dict_table[] = {
 
     { MP_ROM_QSTR(MP_QSTR_width), MP_ROM_PTR(&displayio_epaperdisplay_width_obj) },
     { MP_ROM_QSTR(MP_QSTR_height), MP_ROM_PTR(&displayio_epaperdisplay_height_obj) },
+    { MP_ROM_QSTR(MP_QSTR_rotation), MP_ROM_PTR(&displayio_epaperdisplay_rotation_obj) },
     { MP_ROM_QSTR(MP_QSTR_bus), MP_ROM_PTR(&displayio_epaperdisplay_bus_obj) },
+    { MP_ROM_QSTR(MP_QSTR_busy), MP_ROM_PTR(&displayio_epaperdisplay_busy_obj) },
     { MP_ROM_QSTR(MP_QSTR_time_to_refresh), MP_ROM_PTR(&displayio_epaperdisplay_time_to_refresh_obj) },
 };
 STATIC MP_DEFINE_CONST_DICT(displayio_epaperdisplay_locals_dict, displayio_epaperdisplay_locals_dict_table);
@@ -285,5 +352,5 @@ const mp_obj_type_t displayio_epaperdisplay_type = {
     { &mp_type_type },
     .name = MP_QSTR_EPaperDisplay,
     .make_new = displayio_epaperdisplay_make_new,
-    .locals_dict = (mp_obj_dict_t*)&displayio_epaperdisplay_locals_dict,
+    .locals_dict = (mp_obj_dict_t *)&displayio_epaperdisplay_locals_dict,
 };

@@ -16,9 +16,47 @@ import isort
 import black
 
 
-IMPORTS_IGNORE = frozenset({'int', 'float', 'bool', 'str', 'bytes', 'tuple', 'list', 'set', 'dict', 'bytearray', 'slice', 'file', 'buffer', 'range', 'array', 'struct_time'})
-IMPORTS_TYPING = frozenset({'Any', 'Optional', 'Union', 'Tuple', 'List', 'Sequence', 'NamedTuple', 'Iterable', 'Iterator', 'Callable', 'AnyStr', 'overload'})
-CPY_TYPING = frozenset({'ReadableBuffer', 'WriteableBuffer', 'AudioSample', 'FrameBuffer'})
+IMPORTS_IGNORE = frozenset(
+    {
+        "int",
+        "float",
+        "bool",
+        "str",
+        "bytes",
+        "tuple",
+        "list",
+        "set",
+        "dict",
+        "bytearray",
+        "slice",
+        "file",
+        "buffer",
+        "range",
+        "array",
+        "struct_time",
+    }
+)
+IMPORTS_TYPING = frozenset(
+    {
+        "Any",
+        "Optional",
+        "Union",
+        "Tuple",
+        "List",
+        "Sequence",
+        "NamedTuple",
+        "Iterable",
+        "Iterator",
+        "Callable",
+        "AnyStr",
+        "overload",
+        "Type",
+    }
+)
+IMPORTS_TYPES = frozenset({"TracebackType"})
+CPY_TYPING = frozenset(
+    {"ReadableBuffer", "WriteableBuffer", "AudioSample", "FrameBuffer", "Alarm"}
+)
 
 
 def is_typed(node, allow_any=False):
@@ -28,8 +66,12 @@ def is_typed(node, allow_any=False):
         return True
     elif isinstance(node, ast.Name) and node.id == "Any":
         return False
-    elif isinstance(node, ast.Attribute) and type(node.value) == ast.Name \
-            and node.value.id == "typing" and node.attr == "Any":
+    elif (
+        isinstance(node, ast.Attribute)
+        and type(node.value) == ast.Name
+        and node.value.id == "typing"
+        and node.attr == "Any"
+    ):
         return False
     return True
 
@@ -49,12 +91,23 @@ def find_stub_issues(tree):
             if sys.version_info >= (3, 8):
                 allargs.extend(node.posonlyargs)
             for arg_node in allargs:
-                if not is_typed(arg_node.annotation) and (arg_node.arg != "self" and arg_node.arg != "cls"):
-                    yield ("WARN", f"Missing argument type: {arg_node.arg} on line {arg_node.lineno}")
+                if not is_typed(arg_node.annotation) and (
+                    arg_node.arg != "self" and arg_node.arg != "cls"
+                ):
+                    yield (
+                        "WARN",
+                        f"Missing argument type: {arg_node.arg} on line {arg_node.lineno}",
+                    )
             if node.vararg and not is_typed(node.vararg.annotation, allow_any=True):
-                yield ("WARN", f"Missing argument type: *{node.vararg.arg} on line {node.vararg.lineno}")
+                yield (
+                    "WARN",
+                    f"Missing argument type: *{node.vararg.arg} on line {node.vararg.lineno}",
+                )
             if node.kwarg and not is_typed(node.kwarg.annotation, allow_any=True):
-                yield ("WARN", f"Missing argument type: **{node.kwarg.arg} on line {node.kwarg.lineno}")
+                yield (
+                    "WARN",
+                    f"Missing argument type: **{node.kwarg.arg} on line {node.kwarg.lineno}",
+                )
         elif isinstance(node, ast.FunctionDef):
             if not is_typed(node.returns):
                 yield ("WARN", f"Missing return type: {node.name} on line {node.lineno}")
@@ -63,6 +116,7 @@ def find_stub_issues(tree):
 def extract_imports(tree):
     modules = set()
     typing = set()
+    types = set()
     cpy_typing = set()
 
     def collect_annotations(anno_tree):
@@ -74,6 +128,8 @@ def extract_imports(tree):
                     continue
                 elif node.id in IMPORTS_TYPING:
                     typing.add(node.id)
+                elif node.id in IMPORTS_TYPES:
+                    types.add(node.id)
                 elif node.id in CPY_TYPING:
                     cpy_typing.add(node.id)
             elif isinstance(node, ast.Attribute):
@@ -94,6 +150,7 @@ def extract_imports(tree):
     return {
         "modules": sorted(modules),
         "typing": sorted(typing),
+        "types": sorted(types),
         "cpy_typing": sorted(cpy_typing),
     }
 
@@ -181,6 +238,8 @@ def convert_folder(top_level, stub_directory):
     # Add import statements
     imports = extract_imports(tree)
     import_lines = ["from __future__ import annotations"]
+    if imports["types"]:
+        import_lines.append("from types import " + ", ".join(imports["types"]))
     if imports["typing"]:
         import_lines.append("from typing import " + ", ".join(imports["typing"]))
     if imports["cpy_typing"]:
@@ -189,7 +248,7 @@ def convert_folder(top_level, stub_directory):
     import_body = "\n".join(import_lines)
     m = re.match(r'(\s*""".*?""")', stub_contents, flags=re.DOTALL)
     if m:
-        stub_contents = m.group(1) + "\n\n" + import_body + "\n\n" + stub_contents[m.end():]
+        stub_contents = m.group(1) + "\n\n" + import_body + "\n\n" + stub_contents[m.end() :]
     else:
         stub_contents = import_body + "\n\n" + stub_contents
 

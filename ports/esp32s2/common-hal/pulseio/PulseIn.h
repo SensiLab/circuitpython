@@ -30,20 +30,20 @@
 #include "common-hal/microcontroller/Pin.h"
 
 #include "py/obj.h"
-#include "driver/rmt.h"
-#include "rmt.h"
+#include "components/driver/include/driver/rmt.h"
+#include "peripherals/rmt.h"
 
 typedef struct {
     mp_obj_base_t base;
 
-    const mcu_pin_obj_t* pin;
+    const mcu_pin_obj_t *pin;
     rmt_channel_t channel;
     bool idle_state;
     bool paused;
 
     RingbufHandle_t buf_handle;
 
-    uint16_t* buffer;
+    uint16_t *buffer;
     uint16_t maxlen;
 
     volatile uint16_t start;

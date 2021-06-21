@@ -122,7 +122,7 @@ CFLAGS += \
 	-fdata-sections \
 	-Wall \
 
-OPTIMIZATION_FLAGS ?= -O2
+OPTIMIZATION_FLAGS ?= -O2 -fno-inline-functions
 
 # option to override compiler optimization level, set in boards/$(BOARD)/mpconfigboard.mk
 CFLAGS += $(OPTIMIZATION_FLAGS)
@@ -151,7 +151,7 @@ LDFLAGS = \
 	--end-group \
 	-L$(BUILD) \
 
-CFLAGS += -DCFG_TUSB_MCU=OPT_MCU_CXD56 -DCFG_TUD_MIDI_RX_BUFSIZE=512 -DCFG_TUD_CDC_RX_BUFSIZE=512 -DCFG_TUD_MIDI_TX_BUFSIZE=512 -DCFG_TUD_CDC_TX_BUFSIZE=512 -DCFG_TUD_MSC_BUFSIZE=512 $(CFLAGS_MOD)
+CFLAGS += -DCFG_TUSB_MCU=OPT_MCU_CXD56 -DCFG_TUD_MIDI_RX_BUFSIZE=512 -DCFG_TUD_CDC_RX_BUFSIZE=1024 -DCFG_TUD_MIDI_TX_BUFSIZE=512 -DCFG_TUD_CDC_TX_BUFSIZE=1024 -DCFG_TUD_MSC_BUFSIZE=512 $(CFLAGS_MOD)
 
 SRC_COMMON_HAL_EXPANDED = $(addprefix shared-bindings/, $(SRC_COMMON_HAL)) \
                           $(addprefix shared-bindings/, $(SRC_BINDINGS_ENUMS)) \
@@ -162,24 +162,12 @@ SRC_SHARED_MODULE_EXPANDED = $(addprefix shared-bindings/, $(SRC_SHARED_MODULE))
 
 SRC_S = supervisor/cpu.s
 
-SRC_C = \
+SRC_C += \
 	background.c \
 	fatfs_port.c \
 	mphalport.c \
 	boards/$(BOARD)/board.c \
 	boards/$(BOARD)/pins.c \
-	lib/utils/stdout_helpers.c \
-	lib/utils/pyexec.c \
-	lib/libc/string0.c \
-	lib/mp-readline/readline.c \
-	lib/timeutils/timeutils.c \
-	lib/oofatfs/ff.c \
-	lib/oofatfs/option/ccsbcs.c \
-	lib/utils/interrupt_char.c \
-	lib/utils/sys_stdio_mphal.c \
-	lib/utils/context_manager_helpers.c \
-	lib/utils/buffer_helper.c \
-	supervisor/shared/memory.c \
 	lib/tinyusb/src/portable/sony/cxd56/dcd_cxd56.c \
 
 OBJ = $(PY_O) $(SUPERVISOR_O) $(addprefix $(BUILD)/, $(SRC_C:.c=.o))
@@ -189,6 +177,7 @@ OBJ += $(addprefix $(BUILD)/, $(SRC_SHARED_MODULE_EXPANDED:.c=.o))
 ifeq ($(INTERNAL_LIBM),1)
 OBJ += $(addprefix $(BUILD)/, $(SRC_LIBM:.c=.o))
 endif
+OBJ += $(addprefix $(BUILD)/, $(SRC_CIRCUITPY_COMMON:.c=.o))
 OBJ += $(addprefix $(BUILD)/, $(SRC_MOD:.c=.o))
 
 # List of sources for qstr extraction
@@ -201,7 +190,7 @@ all: $(BUILD)/firmware.spk
 $(FIRMWARE):
 	$(ECHO) ""
 	$(ECHO) "Download the spresense binaries zip archive from:"
-	$(ECHO) "https://developer.sony.com/file/download/download-spresense-firmware-v1-4-000"
+	$(ECHO) "https://developer.sony.com/file/download/download-spresense-firmware-v2-0-000"
 	$(ECHO) "Extract spresense binaries to $(FIRMWARE)"
 	$(ECHO) ""
 	$(ECHO) "run make flash-bootloader again to flash bootloader."

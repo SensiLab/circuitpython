@@ -34,7 +34,7 @@
 #include "py/gc.h"
 #include "py/runtime.h"
 #include "shared-bindings/pulseio/PulseOut.h"
-#include "shared-bindings/pulseio/PWMOut.h"
+#include "shared-bindings/pwmio/PWMOut.h"
 #include "supervisor/shared/translate.h"
 
 // A single timer is shared amongst all PulseOut objects under the assumption that
@@ -66,7 +66,7 @@ static void start_timer(void) {
 }
 
 static void pulseout_event_handler(nrf_timer_event_t event_type, void *p_context) {
-    pulseio_pulseout_obj_t *pulseout = (pulseio_pulseout_obj_t*) p_context;
+    pulseio_pulseout_obj_t *pulseout = (pulseio_pulseout_obj_t *)p_context;
     if (event_type != NRF_TIMER_EVENT_COMPARE0) {
         // Spurious event.
         return;
@@ -99,14 +99,13 @@ void pulseout_reset() {
     refcount = 0;
 }
 
-void common_hal_pulseio_pulseout_construct(pulseio_pulseout_obj_t* self,
-                                            const pulseio_pwmout_obj_t* carrier,
-                                            const mcu_pin_obj_t* pin,
-                                            uint32_t frequency,
-                                            uint16_t duty_cycle) {
+void common_hal_pulseio_pulseout_construct(pulseio_pulseout_obj_t *self,
+    const pwmio_pwmout_obj_t *carrier,
+    const mcu_pin_obj_t *pin,
+    uint32_t frequency,
+    uint16_t duty_cycle) {
     if (!carrier || pin || frequency) {
-        mp_raise_NotImplementedError(translate("Port does not accept pins or frequency. \
-                                    Construct and pass a PWMOut Carrier instead"));
+        mp_raise_NotImplementedError(translate("Port does not accept pins or frequency. Construct and pass a PWMOut Carrier instead"));
     }
 
     if (refcount == 0) {
@@ -129,11 +128,11 @@ void common_hal_pulseio_pulseout_construct(pulseio_pulseout_obj_t* self,
     turn_off(self);
 }
 
-bool common_hal_pulseio_pulseout_deinited(pulseio_pulseout_obj_t* self) {
+bool common_hal_pulseio_pulseout_deinited(pulseio_pulseout_obj_t *self) {
     return self->pwmout == NULL;
 }
 
-void common_hal_pulseio_pulseout_deinit(pulseio_pulseout_obj_t* self) {
+void common_hal_pulseio_pulseout_deinit(pulseio_pulseout_obj_t *self) {
     if (common_hal_pulseio_pulseout_deinited(self)) {
         return;
     }
@@ -146,7 +145,7 @@ void common_hal_pulseio_pulseout_deinit(pulseio_pulseout_obj_t* self) {
     }
 }
 
-void common_hal_pulseio_pulseout_send(pulseio_pulseout_obj_t* self, uint16_t* pulses, uint16_t length) {
+void common_hal_pulseio_pulseout_send(pulseio_pulseout_obj_t *self, uint16_t *pulses, uint16_t length) {
     pulse_array = pulses;
     pulse_array_index = 0;
     pulse_array_length = length;
@@ -157,7 +156,7 @@ void common_hal_pulseio_pulseout_send(pulseio_pulseout_obj_t* self, uint16_t* pu
     // Count up to the next given value.
     start_timer();
 
-    while(pulse_array_index < length) {
+    while (pulse_array_index < length) {
         // Do other things while we wait. The interrupts will handle sending the
         // signal.
         RUN_BACKGROUND_TASKS;

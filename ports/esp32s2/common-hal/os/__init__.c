@@ -30,6 +30,8 @@
 #include "py/objtuple.h"
 #include "py/qstr.h"
 
+#include "esp_system.h"
+
 STATIC const qstr os_uname_info_fields[] = {
     MP_QSTR_sysname, MP_QSTR_nodename,
     MP_QSTR_release, MP_QSTR_version, MP_QSTR_machine
@@ -50,12 +52,22 @@ STATIC MP_DEFINE_ATTRTUPLE(
     (mp_obj_t)&os_uname_info_release_obj,
     (mp_obj_t)&os_uname_info_version_obj,
     (mp_obj_t)&os_uname_info_machine_obj
-);
+    );
 
 mp_obj_t common_hal_os_uname(void) {
     return (mp_obj_t)&os_uname_info_obj;
 }
 
-bool common_hal_os_urandom(uint8_t* buffer, uint32_t length) {
-    return false;
+bool common_hal_os_urandom(uint8_t *buffer, uint32_t length) {
+    uint32_t i = 0;
+    while (i < length) {
+        uint32_t new_random = esp_random();
+        for (int j = 0; j < 4 && i < length; j++) {
+            buffer[i] = new_random & 0xff;
+            i++;
+            new_random >>= 8;
+        }
+    }
+
+    return true;
 }

@@ -28,9 +28,8 @@
 #define MICROPY_INCLUDED_ESP32S2_COMMON_HAL_PULSEIO_PULSEOUT_H
 
 #include "common-hal/microcontroller/Pin.h"
-#include "common-hal/pulseio/PWMOut.h"
-#include "driver/rmt.h"
-#include "rmt.h"
+#include "components/driver/include/driver/rmt.h"
+#include "peripherals/rmt.h"
 
 #include "py/obj.h"
 

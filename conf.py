@@ -23,8 +23,8 @@ import re
 import subprocess
 import sys
 import urllib.parse
+import time
 
-import recommonmark
 from sphinx.transforms import SphinxTransform
 from docutils import nodes
 from sphinx import addnodes
@@ -41,6 +41,9 @@ master_doc = 'docs/index'
 
 # Grab the JSON values to use while building the module support matrix
 # in 'shared-bindings/index.rst'
+
+# The stubs must be built before we calculate the shared bindings matrix
+subprocess.check_output(["make", "stubs"])
 
 #modules_support_matrix = shared_bindings_matrix.support_matrix_excluded_boards()
 modules_support_matrix = shared_bindings_matrix.support_matrix_by_board()
@@ -64,8 +67,9 @@ extensions = [
     'sphinx.ext.intersphinx',
     'sphinx.ext.todo',
     'sphinx.ext.coverage',
+    'sphinx_search.extension',
     'rstjinja',
-    'recommonmark',
+    'myst_parser',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -77,7 +81,6 @@ source_suffix = {
     '.md': 'markdown',
 }
 
-subprocess.check_output(["make", "stubs"])
 extensions.append('autoapi.extension')
 
 autoapi_type = 'python'
@@ -99,9 +102,12 @@ redirects_file = 'docs/redirects.txt'
 # The master toctree document.
 #master_doc = 'index'
 
+# Get current date (execution) for copyright year
+current_date = time.localtime()
+
 # General information about the project.
 project = 'Adafruit CircuitPython'
-copyright = '2014-2020, MicroPython & CircuitPython contributors (https://github.com/adafruit/circuitpython/graphs/contributors)'
+copyright = f'2014-{current_date.tm_year}, MicroPython & CircuitPython contributors (https://github.com/adafruit/circuitpython/graphs/contributors)'
 
 # These are overwritten on ReadTheDocs.
 # The version info for the project you're documenting, acts as replacement for
@@ -144,8 +150,11 @@ version = release = final_version
 # directories to ignore when looking for source files.
 exclude_patterns = ["**/build*",
                     ".git",
+                    ".github",
+                    ".env",
                     ".venv",
                     ".direnv",
+                    "data",
                     "docs/autoapi",
                     "docs/README.md",
                     "drivers",
@@ -169,7 +178,9 @@ exclude_patterns = ["**/build*",
                     "ports/atmel-samd/tools",
                     "ports/cxd56/mkspk",
                     "ports/cxd56/spresense-exported-sdk",
+                    "ports/esp32s2/certificates",
                     "ports/esp32s2/esp-idf",
+                    "ports/esp32s2/.idf_tools",
                     "ports/esp32s2/peripherals",
                     "ports/litex/hw",
                     "ports/minimal",
@@ -181,6 +192,7 @@ exclude_patterns = ["**/build*",
                     "ports/nrf/nrfx",
                     "ports/nrf/peripherals",
                     "ports/nrf/usb",
+                    "ports/raspberrypi/sdk",
                     "ports/stm/st_driver",
                     "ports/stm/packages",
                     "ports/stm/peripherals",
@@ -477,6 +489,8 @@ class CoreModuleTransform(SphinxTransform):
 
 def setup(app):
     app.add_css_file("customstyle.css")
+    app.add_css_file("filter.css")
+    app.add_js_file("filter.js")
     app.add_config_value('redirects_file', 'redirects', 'env')
     app.connect('builder-inited', generate_redirects)
     app.add_transform(CoreModuleTransform)

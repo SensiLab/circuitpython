@@ -326,7 +326,7 @@ static void setup_dma(audiobusio_pdmin_obj_t* self, uint32_t length,
 // higher sample rate than specified.  Then after the audio is
 // recorded, a more expensive filter non-real-time filter could be
 // used to down-sample and low-pass.
-uint16_t sinc_filter [OVERSAMPLING] = {
+const uint16_t sinc_filter [OVERSAMPLING] = {
     0, 2, 9, 21, 39, 63, 94, 132,
     179, 236, 302, 379, 467, 565, 674, 792,
     920, 1055, 1196, 1341, 1487, 1633, 1776, 1913,
@@ -337,7 +337,11 @@ uint16_t sinc_filter [OVERSAMPLING] = {
     94, 63, 39, 21, 9, 2, 0, 0
 };
 
-#define REPEAT_16_TIMES(X) X X X X X X X X X X X X X X X X
+#ifdef SAMD21
+#define REPEAT_16_TIMES(X) do { for(uint8_t j=0; j<4; j++) { X X X X } } while (0)
+#else
+#define REPEAT_16_TIMES(X) do { X X X X X X X X X X X X X X X X } while(0)
+#endif
 
 static uint16_t filter_sample(uint32_t pdm_samples[4]) {
     uint16_t running_sum = 0;
@@ -354,7 +358,7 @@ static uint16_t filter_sample(uint32_t pdm_samples[4]) {
                 filter_ptr++;
                 pdm_sample <<= 1;
             }
-            )
+            );
     }
     return running_sum;
 }
@@ -363,11 +367,8 @@ static uint16_t filter_sample(uint32_t pdm_samples[4]) {
 // output_buffer_length is the number of slots, not the number of bytes.
 uint32_t common_hal_audiobusio_pdmin_record_to_buffer(audiobusio_pdmin_obj_t* self,
         uint16_t* output_buffer, uint32_t output_buffer_length) {
-    uint8_t dma_channel = audio_dma_allocate_channel();
-    uint8_t event_channel = find_sync_event_channel();
-    if (event_channel >= EVSYS_SYNCH_NUM) {
-        mp_raise_RuntimeError(translate("All sync event channels in use"));
-    }
+    uint8_t dma_channel = dma_allocate_channel();
+    uint8_t event_channel = find_sync_event_channel_raise();
 
     // We allocate two buffers on the stack to use for double buffering.
     const uint8_t samples_per_buffer = SAMPLES_PER_BUFFER;
@@ -472,7 +473,7 @@ uint32_t common_hal_audiobusio_pdmin_record_to_buffer(audiobusio_pdmin_obj_t* se
     }
 
     disable_event_channel(event_channel);
-    audio_dma_free_channel(dma_channel);
+    dma_free_channel(dma_channel);
     // Turn off serializer, but leave clock on, to avoid mic startup delay.
     i2s_set_serializer_enable(self->serializer, false);
 

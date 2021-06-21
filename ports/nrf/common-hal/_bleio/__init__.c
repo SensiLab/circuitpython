@@ -39,20 +39,27 @@
 #include "supervisor/shared/bluetooth.h"
 
 #include "common-hal/_bleio/__init__.h"
+#include "common-hal/_bleio/bonding.h"
 
 void check_nrf_error(uint32_t err_code) {
     if (err_code == NRF_SUCCESS) {
         return;
     }
     switch (err_code) {
+        case NRF_ERROR_NO_MEM:
+            mp_raise_msg(&mp_type_MemoryError, translate("Nordic system firmware out of memory"));
+            return;
         case NRF_ERROR_TIMEOUT:
             mp_raise_msg(&mp_type_TimeoutError, NULL);
             return;
+        case NRF_ERROR_INVALID_PARAM:
+            mp_raise_ValueError(translate("Invalid BLE parameter"));
+            return;
         case BLE_ERROR_INVALID_CONN_HANDLE:
-            mp_raise_bleio_ConnectionError(translate("Not connected"));
+            mp_raise_ConnectionError(translate("Not connected"));
             return;
         default:
-            mp_raise_bleio_BluetoothError(translate("Unknown soft device error: %04x"), err_code);
+            mp_raise_bleio_BluetoothError(translate("Unknown system firmware error: %04x"), err_code);
             break;
     }
 }
@@ -114,12 +121,12 @@ bleio_adapter_obj_t common_hal_bleio_adapter_obj = {
 
 void common_hal_bleio_check_connected(uint16_t conn_handle) {
     if (conn_handle == BLE_CONN_HANDLE_INVALID) {
-        mp_raise_bleio_ConnectionError(translate("Not connected"));
+        mp_raise_ConnectionError(translate("Not connected"));
     }
 }
 
 // GATTS read of a Characteristic or Descriptor.
-size_t common_hal_bleio_gatts_read(uint16_t handle, uint16_t conn_handle, uint8_t* buf, size_t len) {
+size_t common_hal_bleio_gatts_read(uint16_t handle, uint16_t conn_handle, uint8_t *buf, size_t len) {
     // conn_handle is ignored unless this is a system attribute.
     // If we're not connected, that's OK, because we can still read and write the local value.
 
@@ -146,7 +153,7 @@ void common_hal_bleio_gatts_write(uint16_t handle, uint16_t conn_handle, mp_buff
 }
 
 typedef struct {
-    uint8_t* buf;
+    uint8_t *buf;
     size_t len;
     size_t final_len;
     uint16_t conn_handle;
@@ -155,13 +162,13 @@ typedef struct {
 } read_info_t;
 
 STATIC bool _on_gattc_read_rsp_evt(ble_evt_t *ble_evt, void *param) {
-    read_info_t* read = param;
+    read_info_t *read = param;
     switch (ble_evt->header.evt_id) {
 
         // More events may be handled later, so keep this as a switch.
 
         case BLE_GATTC_EVT_READ_RSP: {
-            ble_gattc_evt_t* evt = &ble_evt->evt.gattc_evt;
+            ble_gattc_evt_t *evt = &ble_evt->evt.gattc_evt;
             ble_gattc_evt_read_rsp_t *response = &evt->params.read_rsp;
             if (read && evt->conn_handle == read->conn_handle) {
                 read->status = evt->gatt_status;
@@ -183,7 +190,7 @@ STATIC bool _on_gattc_read_rsp_evt(ble_evt_t *ble_evt, void *param) {
     return true;
 }
 
-size_t common_hal_bleio_gattc_read(uint16_t handle, uint16_t conn_handle, uint8_t* buf, size_t len) {
+size_t common_hal_bleio_gattc_read(uint16_t handle, uint16_t conn_handle, uint8_t *buf, size_t len) {
     common_hal_bleio_check_connected(conn_handle);
 
     read_info_t read_info;
@@ -241,6 +248,10 @@ void common_hal_bleio_gattc_write(uint16_t handle, uint16_t conn_handle, mp_buff
         check_nrf_error(err_code);
     }
 
+}
+
+void bleio_background(void) {
+    bonding_background();
 }
 
 void common_hal_bleio_gc_collect(void) {

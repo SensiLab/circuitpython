@@ -4,7 +4,6 @@ USB_PRODUCT = "Feather STM32F405 Express"
 USB_MANUFACTURER = "Adafruit Industries LLC"
 
 SPI_FLASH_FILESYSTEM = 1
-EXTERNAL_FLASH_DEVICE_COUNT = 1
 EXTERNAL_FLASH_DEVICES = GD25Q16C
 
 MCU_SERIES = F4
@@ -13,5 +12,8 @@ MCU_PACKAGE = LQFP64
 
 LD_COMMON = boards/common_default.ld
 LD_DEFAULT = boards/STM32F405_default.ld
-LD_BOOT = boards/STM32F405_boot.ld # UF2 boot option
+# UF2 boot option
+LD_BOOT = boards/STM32F405_boot.ld
 UF2_OFFSET = 0x8010000
+
+CIRCUITPY_RGBMATRIX ?= 1

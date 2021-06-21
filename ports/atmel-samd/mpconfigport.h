@@ -38,17 +38,15 @@
 
 // HMCRAMC0_SIZE is defined in the ASF4 include files for each SAMD21 chip.
 #define RAM_SIZE                                    HMCRAMC0_SIZE
-#define BOOTLOADER_SIZE                             (8*1024)
+#define BOOTLOADER_SIZE                             (8 * 1024)
 #define CIRCUITPY_MCU_FAMILY                        samd21
 #define MICROPY_PY_SYS_PLATFORM                     "Atmel SAMD21"
 #define SPI_FLASH_MAX_BAUDRATE 8000000
+#define MICROPY_PY_BUILTINS_COMPLEX                 (0)
 #define MICROPY_PY_BUILTINS_NOTIMPLEMENTED          (0)
-#define MICROPY_PY_COLLECTIONS_ORDEREDDICT          (0)
 #define MICROPY_PY_FUNCTION_ATTRS                   (0)
-// MICROPY_PY_UJSON depends on MICROPY_PY_IO
-#define MICROPY_PY_IO                               (0)
 #define MICROPY_PY_REVERSE_SPECIAL_METHODS          (0)
-#define MICROPY_PY_UJSON                            (0)
+#define MICROPY_PY_COLLECTIONS_ORDEREDDICT          (0)
 #define MICROPY_PY_UERRNO_LIST \
     X(EPERM) \
     X(ENOENT) \
@@ -69,7 +67,7 @@
 
 // HSRAM_SIZE is defined in the ASF4 include files for each SAM_D5X_E5X chip.
 #define RAM_SIZE                                    HSRAM_SIZE
-#define BOOTLOADER_SIZE                             (16*1024)
+#define BOOTLOADER_SIZE                             (16 * 1024)
 #define CIRCUITPY_MCU_FAMILY                        samd51
 #ifdef SAMD51
 #define MICROPY_PY_SYS_PLATFORM                     "MicroChip SAMD51"
@@ -78,11 +76,7 @@
 #endif
 #define SPI_FLASH_MAX_BAUDRATE 24000000
 #define MICROPY_PY_BUILTINS_NOTIMPLEMENTED          (1)
-#define MICROPY_PY_COLLECTIONS_ORDEREDDICT          (1)
 #define MICROPY_PY_FUNCTION_ATTRS                   (1)
-// MICROPY_PY_UJSON depends on MICROPY_PY_IO
-#define MICROPY_PY_IO                               (1)
-#define MICROPY_PY_UJSON                            (1)
 //      MICROPY_PY_UERRNO_LIST - Use the default
 
 #endif // SAM_D5X_E5X
@@ -99,7 +93,7 @@
 #ifdef SAMD21
 
 #if INTERNAL_FLASH_FILESYSTEM
-#define CIRCUITPY_INTERNAL_FLASH_FILESYSTEM_SIZE (64*1024)
+#define CIRCUITPY_INTERNAL_FLASH_FILESYSTEM_SIZE (64 * 1024)
 #else
 #define CIRCUITPY_INTERNAL_FLASH_FILESYSTEM_SIZE (0)
 #endif
@@ -134,7 +128,7 @@
 #endif
 
 #ifndef CIRCUITPY_DEFAULT_STACK_SIZE
-#define CIRCUITPY_DEFAULT_STACK_SIZE                (24*1024)
+#define CIRCUITPY_DEFAULT_STACK_SIZE                (24 * 1024)
 #endif
 
 #ifndef SAMD5x_E5x_BOD33_LEVEL
@@ -151,7 +145,7 @@
 // If CIRCUITPY is internal, use half of flash for it.
 #if INTERNAL_FLASH_FILESYSTEM
   #ifndef CIRCUITPY_INTERNAL_FLASH_FILESYSTEM_SIZE
-    #define CIRCUITPY_INTERNAL_FLASH_FILESYSTEM_SIZE (FLASH_SIZE/2)
+    #define CIRCUITPY_INTERNAL_FLASH_FILESYSTEM_SIZE (FLASH_SIZE / 2)
   #endif
 #else
   #define CIRCUITPY_INTERNAL_FLASH_FILESYSTEM_SIZE (0)

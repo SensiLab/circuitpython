@@ -75,7 +75,7 @@ INC += \
 
 # NDEBUG disables assert() statements. This reduces code size pretty dramatically, per tannewt.
 
-CFLAGS += -Os -DNDEBUG
+CFLAGS += -Os -ftree-vrp -DNDEBUG -ffreestanding
 
 # TinyUSB defines
 CFLAGS += -DCFG_TUSB_MCU=OPT_MCU_MIMXRT10XX -DCFG_TUD_MIDI_RX_BUFSIZE=512 -DCFG_TUD_CDC_RX_BUFSIZE=512 -DCFG_TUD_MIDI_TX_BUFSIZE=512 -DCFG_TUD_CDC_TX_BUFSIZE=512 -DCFG_TUD_MSC_BUFSIZE=1024
@@ -108,7 +108,7 @@ CFLAGS += \
 	-g3 -Wno-unused-parameter \
 	-ffunction-sections -fdata-sections -fstack-usage
 
-OPTIMIZATION_FLAGS ?= -O2
+OPTIMIZATION_FLAGS ?= -O2 -fno-inline-functions
 
 # option to override compiler optimization level, set in boards/$(BOARD)/mpconfigboard.mk
 CFLAGS += $(OPTIMIZATION_FLAGS)
@@ -146,31 +146,21 @@ SRC_SDK := \
 	system_$(CHIP_FAMILY).c \
 
 SRC_SDK := $(addprefix sdk/devices/$(CHIP_FAMILY)/, $(SRC_SDK))
+$(addprefix $(BUILD)/, $(SRC_SDK:.c=.o)): CFLAGS += -Wno-undef
 
-SRC_C = \
+SRC_C += \
 	background.c \
 	boards/$(BOARD)/board.c \
 	boards/$(BOARD)/flash_config.c \
 	boards/$(BOARD)/pins.c \
 	fatfs_port.c \
-	lib/mp-readline/readline.c \
-	lib/oofatfs/ff.c \
-	lib/oofatfs/option/ccsbcs.c \
-	lib/timeutils/timeutils.c \
-	lib/utils/buffer_helper.c \
-	lib/utils/context_manager_helpers.c \
-	lib/utils/interrupt_char.c \
-	lib/utils/pyexec.c \
-	lib/utils/stdout_helpers.c \
-	lib/utils/sys_stdio_mphal.c \
 	lib/tinyusb/src/portable/nxp/transdimension/dcd_transdimension.c \
 	mphalport.c \
 	peripherals/mimxrt10xx/$(CHIP_FAMILY)/clocks.c \
 	peripherals/mimxrt10xx/$(CHIP_FAMILY)/periph.c \
 	peripherals/mimxrt10xx/$(CHIP_FAMILY)/pins.c \
 	reset.c \
-	supervisor/flexspi_nor_flash_ops.c \
-	supervisor/shared/memory.c
+	supervisor/flexspi_nor_flash_ops.c
 
 
 ifeq ($(CIRCUITPY_NETWORK),1)
@@ -223,6 +213,7 @@ OBJ += $(addprefix $(BUILD)/, $(SRC_SHARED_MODULE_EXPANDED:.c=.o))
 ifeq ($(INTERNAL_LIBM),1)
 OBJ += $(addprefix $(BUILD)/, $(SRC_LIBM:.c=.o))
 endif
+OBJ += $(addprefix $(BUILD)/, $(SRC_CIRCUITPY_COMMON:.c=.o))
 OBJ += $(addprefix $(BUILD)/, $(SRC_S:.S=.o))
 OBJ += $(addprefix $(BUILD)/, $(SRC_MOD:.c=.o))
 

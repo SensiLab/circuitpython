@@ -28,16 +28,16 @@ dist/
 ######################
 *.swp
 
-# Build directory
+# Build directories
 ######################
 build/
 bin/
 circuitpython-stubs/
+build-*/
 
 # Test failure outputs
 ######################
-tests/*.exp
-tests/*.out
+tests/results/*
 
 # Python cache files
 ######################
@@ -80,8 +80,12 @@ TAGS
 *.mo
 
 .vscode
+.idea
 
 # Python Virtual Environments
 ####################
 .venv
 .env
+
+# Uncrustify formatting
+*.uncrustify

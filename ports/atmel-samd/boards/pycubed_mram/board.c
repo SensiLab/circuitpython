@@ -27,26 +27,26 @@
 
 #include <string.h>
 
-#include "boards/board.h"
+#include "supervisor/board.h"
 #include "py/mpconfig.h"
 #include "shared-bindings/nvm/ByteArray.h"
 #include "common-hal/microcontroller/Pin.h"
 #include "hal/include/hal_gpio.h"
-#include "shared-bindings/pulseio/PWMOut.h"
+#include "shared-bindings/pwmio/PWMOut.h"
 
 nvm_bytearray_obj_t bootcnt = {
     .base = {
         .type = &nvm_bytearray_type
-            },
-    .len = ( uint32_t) 8192,
-    .start_address = (uint8_t*) (0x00080000 - 8192)
-    };
+    },
+    .len = (uint32_t)8192,
+    .start_address = (uint8_t *)(0x00080000 - 8192)
+};
 
 
 void board_init(void) {
-    pulseio_pwmout_obj_t pwm;
-    common_hal_pulseio_pwmout_construct(&pwm, &pin_PA23, 4096, 2, false);
-    common_hal_pulseio_pwmout_never_reset(&pwm);
+    pwmio_pwmout_obj_t pwm;
+    common_hal_pwmio_pwmout_construct(&pwm, &pin_PA23, 4096, 2, false);
+    common_hal_pwmio_pwmout_never_reset(&pwm);
 }
 
 bool board_requests_safe_mode(void) {

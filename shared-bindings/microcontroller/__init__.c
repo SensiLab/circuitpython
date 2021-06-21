@@ -39,13 +39,12 @@
 #include "shared-bindings/microcontroller/Pin.h"
 #include "shared-bindings/microcontroller/Processor.h"
 
-#include "py/runtime.h"
 #include "supervisor/shared/translate.h"
 
 //| """Pin references and cpu functionality
 //|
 //| The `microcontroller` module defines the pins from the perspective of the
-//| microcontroller. See `board` for board-specific pin mappings."""
+//| microcontroller. See :py:mod:`board` for board-specific pin mappings."""
 //|
 //| from nvm import ByteArray
 //| from watchdog import WatchDogTimer
@@ -54,7 +53,13 @@
 //| cpu: Processor
 //| """CPU information and control, such as ``cpu.temperature`` and ``cpu.frequency``
 //| (clock frequency).
-//| This object is the sole instance of `microcontroller.Processor`."""
+//| This object is an instance of `microcontroller.Processor`."""
+//|
+
+//| cpus: Processor
+//| """CPU information and control, such as ``cpus[0].temperature`` and ``cpus[1].frequency``
+//| (clock frequency) on chips with more than 1 cpu. The index selects which cpu.
+//| This object is an instance of `microcontroller.Processor`."""
 //|
 
 //| def delay_us(delay: int) -> None:
@@ -148,24 +153,17 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_0(mcu_reset_obj, mcu_reset);
 //| This object is the sole instance of `watchdog.WatchDogTimer` when available or ``None`` otherwise."""
 //|
 
-
-//| """:mod:`microcontroller.pin` --- Microcontroller pin names
-//| --------------------------------------------------------
-//|
-//| .. module:: microcontroller.pin
-//|   :synopsis: Microcontroller pin names
-//|   :platform: SAMD21
-//|
-//| References to pins as named by the microcontroller"""
-//|
 const mp_obj_module_t mcu_pin_module = {
     .base = { &mp_type_module },
-    .globals = (mp_obj_dict_t*)&mcu_pin_globals,
+    .globals = (mp_obj_dict_t *)&mcu_pin_globals,
 };
 
 STATIC const mp_rom_map_elem_t mcu_module_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_microcontroller) },
     { MP_ROM_QSTR(MP_QSTR_cpu),  MP_ROM_PTR(&common_hal_mcu_processor_obj) },
+    #if CIRCUITPY_PROCESSOR_COUNT > 1
+    { MP_ROM_QSTR(MP_QSTR_cpus),  MP_ROM_PTR(&common_hal_multi_processor_obj) },
+    #endif
     { MP_ROM_QSTR(MP_QSTR_delay_us), MP_ROM_PTR(&mcu_delay_us_obj) },
     { MP_ROM_QSTR(MP_QSTR_disable_interrupts), MP_ROM_PTR(&mcu_disable_interrupts_obj) },
     { MP_ROM_QSTR(MP_QSTR_enable_interrupts), MP_ROM_PTR(&mcu_enable_interrupts_obj) },
@@ -174,13 +172,14 @@ STATIC const mp_rom_map_elem_t mcu_module_globals_table[] = {
     #if CIRCUITPY_INTERNAL_NVM_SIZE > 0
     { MP_ROM_QSTR(MP_QSTR_nvm),  MP_ROM_PTR(&common_hal_mcu_nvm_obj) },
     #else
-    { MP_ROM_QSTR(MP_QSTR_nvm),  MP_ROM_PTR(&mp_const_none_obj) },
+    { MP_ROM_QSTR(MP_QSTR_nvm),  MP_ROM_NONE },
     #endif
     #if CIRCUITPY_WATCHDOG
     { MP_ROM_QSTR(MP_QSTR_watchdog),  MP_ROM_PTR(&common_hal_mcu_watchdogtimer_obj) },
     #else
-    { MP_ROM_QSTR(MP_QSTR_watchdog),  MP_ROM_PTR(&mp_const_none_obj) },
+    { MP_ROM_QSTR(MP_QSTR_watchdog),  MP_ROM_NONE },
     #endif
+    { MP_ROM_QSTR(MP_QSTR_ResetReason),  MP_ROM_PTR(&mcu_reset_reason_type) },
     { MP_ROM_QSTR(MP_QSTR_RunMode),  MP_ROM_PTR(&mcu_runmode_type) },
     { MP_ROM_QSTR(MP_QSTR_Pin),  MP_ROM_PTR(&mcu_pin_type) },
     { MP_ROM_QSTR(MP_QSTR_pin),  MP_ROM_PTR(&mcu_pin_module) },
@@ -192,5 +191,5 @@ STATIC MP_DEFINE_CONST_DICT(mcu_module_globals, mcu_module_globals_table);
 
 const mp_obj_module_t microcontroller_module = {
     .base = { &mp_type_module },
-    .globals = (mp_obj_dict_t*)&mcu_module_globals,
+    .globals = (mp_obj_dict_t *)&mcu_module_globals,
 };

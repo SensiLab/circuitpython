@@ -66,6 +66,7 @@ STATIC mp_obj_t watchdog_watchdogtimer_feed(mp_obj_t self_in) {
     if (current_mode == WATCHDOGMODE_NONE) {
         mp_raise_ValueError(translate("WatchDogTimer is not currently running"));
     }
+
     common_hal_watchdog_feed(self);
     return mp_const_none;
 }
@@ -78,12 +79,6 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_1(watchdog_watchdogtimer_feed_obj, watchdog_watch
 //|
 STATIC mp_obj_t watchdog_watchdogtimer_deinit(mp_obj_t self_in) {
     watchdog_watchdogtimer_obj_t *self = MP_OBJ_TO_PTR(self_in);
-    watchdog_watchdogmode_t current_mode = common_hal_watchdog_get_mode(self);
-
-    if (current_mode == WATCHDOGMODE_RESET) {
-        mp_raise_NotImplementedError(translate("WatchDogTimer cannot be deinitialized once mode is set to RESET"));
-    }
-
     common_hal_watchdog_deinit(self);
     return mp_const_none;
 }
@@ -116,7 +111,7 @@ const mp_obj_property_t watchdog_watchdogtimer_timeout_obj = {
     .base.type = &mp_type_property,
     .proxy = {(mp_obj_t)&watchdog_watchdogtimer_get_timeout_obj,
               (mp_obj_t)&watchdog_watchdogtimer_set_timeout_obj,
-              (mp_obj_t)&mp_const_none_obj},
+              MP_ROM_NONE},
 };
 
 //|     mode: WatchDogMode
@@ -167,7 +162,7 @@ const mp_obj_property_t watchdog_watchdogtimer_mode_obj = {
     .base.type = &mp_type_property,
     .proxy = {(mp_obj_t)&watchdog_watchdogtimer_get_mode_obj,
               (mp_obj_t)&watchdog_watchdogtimer_set_mode_obj,
-              (mp_obj_t)&mp_const_none_obj},
+              MP_ROM_NONE},
 };
 
 STATIC const mp_rom_map_elem_t watchdog_watchdogtimer_locals_dict_table[] = {
@@ -182,5 +177,5 @@ const mp_obj_type_t watchdog_watchdogtimer_type = {
     { &mp_type_type },
     .name = MP_QSTR_WatchDogTimer,
     // .make_new = watchdog_watchdogtimer_make_new,
-    .locals_dict = (mp_obj_dict_t*)&watchdog_watchdogtimer_locals_dict,
+    .locals_dict = (mp_obj_dict_t *)&watchdog_watchdogtimer_locals_dict,
 };
